@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# -------------------------
+# --------------------------------------------------
 # Paramètres physiques
-# -------------------------
+# --------------------------------------------------
 I0 = 1.0
 w = 100e-9
 d = 450e-9
@@ -11,56 +11,90 @@ lam = 2.5e-12
 L = 10.0
 L1 = 0.25
 
-# Axe spatial
-x = np.linspace(-5e-4, 5e-4, 15000)
+V = 0.5  # visibilité
 
-# Décalage géométrique des deux fentes
+# Axe spatial
+x = np.linspace(-5e-4, 5e-4, 16000)
+
+# Décalage géométrique
 x_shift = L * (d / (2 * L1))
 
-# Phase d’interférence
+# Phase principale
 phi = 2 * np.pi * d * x / (lam * L)
 
+# Phase "locale" que tu proposes
+phi1 = (2 * np.pi / lam) * (d / 2) * (x / L)
+
+# --------------------------------------------------
 # sinc²
+# --------------------------------------------------
 def sinc2(u):
     return (np.sinc(u / np.pi))**2
 
-# ------------------------------------------------
-# 1) Diffraction par UNE seule fente
-# ------------------------------------------------
+# --------------------------------------------------
+# Diffraction seule
+# --------------------------------------------------
 I_single = I0 * sinc2(np.pi * w * x / (lam * L))
 
-# ------------------------------------------------
-# 2) Deux fentes (sans interférence)
-# ------------------------------------------------
+# --------------------------------------------------
+# Deux fentes (sans interférence)
+# --------------------------------------------------
 I1 = I0 * sinc2(np.pi * w * (x - x_shift) / (lam * L))
 I2 = I0 * sinc2(np.pi * w * (x + x_shift) / (lam * L))
 I_sum = I1 + I2
 
-# ------------------------------------------------
-# 3) Deux fentes AVEC interférence
-# ------------------------------------------------
+# --------------------------------------------------
+# Interférence "physique" classique
+# --------------------------------------------------
 I_interf = I1 + I2 + np.sqrt(I1 * I2) * np.cos(phi)
 
-# Normalisation commune
-norm = max(I_single.max(), I_sum.max(), I_interf.max())
+# --------------------------------------------------
+# NOUVELLES COURBES (TES FORMULES)
+# --------------------------------------------------
+
+# 1) modulation sur I1
+I1_mod = I1 * (1 + V * np.cos(2 * phi1))
+
+# 2) modulation sur I2 (symétrique)
+I2_mod = I2 * (1 + V * np.cos(-2 * phi1))
+
+# 3) somme des deux modulations
+I_mod_sum = I1_mod + I2_mod
+
+# --------------------------------------------------
+# Normalisation globale
+# --------------------------------------------------
+all_curves = [
+    I_single, I_sum, I_interf,
+    I1_mod, I2_mod, I_mod_sum
+]
+norm = max(c.max() for c in all_curves)
+
 I_single /= norm
 I_sum /= norm
 I_interf /= norm
+I1_mod /= norm
+I2_mod /= norm
+I_mod_sum /= norm
 
-# ------------------------------------------------
+# --------------------------------------------------
 # PLOT
-# ------------------------------------------------
-plt.figure(figsize=(11, 5))
+# --------------------------------------------------
+plt.figure(figsize=(12, 6))
 
-plt.plot(x * 1e6, I_single, label="1 fente (diffraction sinc²)", linewidth=2)
-plt.plot(x * 1e6, I_sum, "--", label="2 fentes : I₁ + I₂ (sans interférence)")
-plt.plot(x * 1e6, I_interf, label="2 fentes : I₁ + I₂ + √(I₁I₂) cosφ")
+plt.plot(x*1e6, I_single, label="1 fente (diffraction)")
+plt.plot(x*1e6, I_sum, "--", label="2 fentes : I₁ + I₂")
+plt.plot(x*1e6, I_interf, label="Interférence standard √(I₁I₂)")
+
+plt.plot(x*1e6, I1_mod, label="I₁ + I₁·V·cos(2φ₁)")
+plt.plot(x*1e6, I2_mod, label="I₂ + I₂·V·cos(2φ₁)")
+plt.plot(x*1e6, I_mod_sum, label="Somme des deux modulations")
 
 plt.xlabel("x (µm)")
 plt.ylabel("Intensité normalisée")
-plt.title("Diffraction et interférences — comparaison physique")
+plt.title("Comparaison : diffraction, interférences et modulations locales")
 plt.grid(True)
-plt.legend()
+plt.legend(fontsize=9)
 plt.tight_layout()
 
 plt.savefig("result.png", dpi=200)
