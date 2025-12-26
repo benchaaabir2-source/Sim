@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,7 +11,7 @@ lam = 2.5e-12
 L = 10.0
 L1 = 0.25
 
-V = 0.5  # visibilité
+V = 1 # visibilité
 
 # Axe spatial
 x = np.linspace(-5e-4, 5e-4, 16000)
@@ -23,7 +22,7 @@ x_shift = L * (d / (2 * L1))
 # Phase principale
 phi = 2 * np.pi * d * x / (lam * L)
 
-# Phase locale
+# Phase "locale" que tu proposes
 phi1 = (2 * np.pi / lam) * (d / 2) * (x / L)
 
 # --------------------------------------------------
@@ -45,21 +44,21 @@ I2 = I0 * sinc2(np.pi * w * (x + x_shift) / (lam * L))
 I_sum = I1 + I2
 
 # --------------------------------------------------
-# Interférence standard (référence)
+# Interférence "physique" classique
 # --------------------------------------------------
 I_interf = I1 + I2 + np.sqrt(I1 * I2) * np.cos(phi)
 
 # --------------------------------------------------
-# TES NOUVELLES FORMULES (avec SIN)
+# NOUVELLES COURBES (TES FORMULES)
 # --------------------------------------------------
 
-# modulation sur I1
-I1_mod = I1 * (1 + V * np.sin(2 * phi1))
+# 1) modulation sur I1
+I1_mod = I1 * (1 + V * np.cos(2 * phi1))
 
-# modulation sur I2 (symétrique)
-I2_mod = I2 * (1 + V * np.sin(-2 * phi1))
+# 2) modulation sur I2 (symétrique)
+I2_mod = I2 * (1 + V * np.cos(-2 * phi1))
 
-# somme des deux modulations
+# 3) somme des deux modulations
 I_mod_sum = I1_mod + I2_mod
 
 # --------------------------------------------------
@@ -69,7 +68,6 @@ all_curves = [
     I_single, I_sum, I_interf,
     I1_mod, I2_mod, I_mod_sum
 ]
-
 norm = max(c.max() for c in all_curves)
 
 I_single /= norm
@@ -84,20 +82,19 @@ I_mod_sum /= norm
 # --------------------------------------------------
 plt.figure(figsize=(12, 6))
 
-plt.plot(x * 1e6, I_single, label="1 slit (diffraction)")
-plt.plot(x * 1e6, I_sum, "--", label="2 slits: I₁ + I₂")
-plt.plot(x * 1e6, I_interf, label="Standard interference √(I₁I₂) cosφ")
+plt.plot(x*1e6, I_single, label="1 fente (diffraction)")
+plt.plot(x*1e6, I_sum, "--", label="2 fentes : I₁ + I₂")
+plt.plot(x*1e6, I_interf, label="Interférence standard √(I₁I₂)")
 
-plt.plot(x * 1e6, I1_mod, label="I₁ · (1 + V sin(2φ₁))")
-plt.plot(x * 1e6, I2_mod, label="I₂ · (1 + V sin(2φ₁))")
-plt.plot(x * 1e6, I_mod_sum, label="Sum of modulated terms")
+plt.plot(x*1e6, I1_mod, label="I₁ + I₁·V·cos(2φ₁)")
+plt.plot(x*1e6, I2_mod, label="I₂ + I₂·V·cos(2φ₁)")
+plt.plot(x*1e6, I_mod_sum, label="Somme des deux modulations")
 
 plt.xlabel("x (µm)")
-plt.ylabel("Normalized intensity")
-plt.title("Diffraction and modulation model (sin version)")
+plt.ylabel("Intensité normalisée")
+plt.title("Comparaison : diffraction, interférences et modulations locales")
 plt.grid(True)
 plt.legend(fontsize=9)
 plt.tight_layout()
 
-plt.savefig("result_sin_model.png", dpi=200)
-plt.show()
+plt.savefig("result.png", dpi=200)
