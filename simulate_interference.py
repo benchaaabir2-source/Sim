@@ -45,7 +45,7 @@ I_sum = I1 + I2
 # --------------------------------------------------
 # Interférence classique
 # --------------------------------------------------
-I_interf = I1 + I2 + np.sqrt(I1 * I2) * np.cos(phi)
+I_interf = I1 + I2 + 2 * V * np.sqrt(I1 * I2) * np.cos(phi)
 
 # --------------------------------------------------
 # Fonction pour créer les plots selon V
