@@ -9,87 +9,112 @@ w = 100e-9
 d = 450e-9
 lam = 2.5e-12
 L = 10.0
+L1 = 0.25
 
 V = 0.5  # visibilité
 
 # Axe spatial
 x = np.linspace(-5e-4, 5e-4, 16000)
 
-# Phase d’interférence globale
-phi = 2 * np.pi * d * x / (lam * L)
-
-# Phase locale proposée
-phi1 = (2 * np.pi / lam) * (d / 2) * (x / L)
-
 # --------------------------------------------------
-# sinc²
+# Fonctions
 # --------------------------------------------------
 def sinc2(u):
     return (np.sinc(u / np.pi))**2
 
 # --------------------------------------------------
-# Diffraction (UNE seule enveloppe)
+# Phase
+# --------------------------------------------------
+phi = 2 * np.pi * d * x / (lam * L)
+phi1 = (2 * np.pi / lam) * (d / 2) * (x / L)
+
+# --------------------------------------------------
+# Décalage géométrique (cas 2 fentes)
+# --------------------------------------------------
+x_shift = L * (d / (2 * L1))
+
+# --------------------------------------------------
+# Diffraction
 # --------------------------------------------------
 I_single = I0 * sinc2(np.pi * w * x / (lam * L))
 
-# --------------------------------------------------
-# Deux "fentes" sans décalage spatial
-# (même enveloppe)
-# --------------------------------------------------
-I1 = I_single.copy()
-I2 = I_single.copy()
+I1 = I0 * sinc2(np.pi * w * (x - x_shift) / (lam * L))
+I2 = I0 * sinc2(np.pi * w * (x + x_shift) / (lam * L))
 
 # --------------------------------------------------
-# Interférence standard (forme canonique)
+# Interférence standard
 # --------------------------------------------------
 I_interf = I1 + I2 + np.sqrt(I1 * I2) * np.cos(phi)
 
 # --------------------------------------------------
-# TES NOUVELLES FORMES
+# TON MODÈLE — avec décalage
 # --------------------------------------------------
-
-# 1) modulation locale sur I1
 I1_mod = I1 * (1 + V * np.cos(2 * phi1))
-
-# 2) modulation locale sur I2 (symétrique)
 I2_mod = I2 * (1 + V * np.cos(-2 * phi1))
-
-# 3) somme des deux
 I_mod_sum = I1_mod + I2_mod
 
 # --------------------------------------------------
-# Normalisation commune
+# NOUVELLES COURBES : UNE SEULE FENTE CENTRÉE
+# --------------------------------------------------
+
+# (A) une seule source + modulation
+I_single_mod = I_single * (1 + V * np.cos(2 * phi1))
+
+# (B) "double contribution identique" sans décalage
+# (équivalent à deux sources superposées sur l’axe)
+I_single_double_mod = 2 * I_single * (1 + V * np.cos(2 * phi1))
+
+# --------------------------------------------------
+# Normalisation globale
 # --------------------------------------------------
 all_curves = [
-    I_single, I_interf,
-    I1_mod, I2_mod, I_mod_sum
+    I_single,
+    I1 + I2,
+    I_interf,
+    I1_mod,
+    I2_mod,
+    I_mod_sum,
+    I_single_mod,
+    I_single_double_mod
 ]
 
 norm = max(c.max() for c in all_curves)
 
-I_single /= norm
-I_interf /= norm
-I1_mod /= norm
-I2_mod /= norm
-I_mod_sum /= norm
+for i in range(len(all_curves)):
+    all_curves[i] /= norm
+
+(
+    I_single,
+    I_sum,
+    I_interf,
+    I1_mod,
+    I2_mod,
+    I_mod_sum,
+    I_single_mod,
+    I_single_double_mod
+) = all_curves
 
 # --------------------------------------------------
 # PLOT
 # --------------------------------------------------
 plt.figure(figsize=(12, 6))
 
-plt.plot(x * 1e6, I_single, label="Diffraction seule (sinc²)")
-plt.plot(x * 1e6, I_interf, label="Interférence standard √(I₁I₂)")
+plt.plot(x*1e6, I_single, label="1 fente (sinc²)")
+plt.plot(x*1e6, I_sum, "--", label="2 fentes : I₁ + I₂")
+plt.plot(x*1e6, I_interf, label="Interférence √(I₁I₂)")
 
-plt.plot(x * 1e6, I1_mod, label="I₁ · (1 + V cos(2φ₁))")
-plt.plot(x * 1e6, I2_mod, label="I₂ · (1 + V cos(2φ₁))")
-plt.plot(x * 1e6, I_mod_sum, label="Somme des deux modulations")
+plt.plot(x*1e6, I1_mod, label="I₁ + modulation (déplacée)")
+plt.plot(x*1e6, I2_mod, label="I₂ + modulation (déplacée)")
+plt.plot(x*1e6, I_mod_sum, label="Somme modulée (2 fentes)")
+
+plt.plot(x*1e6, I_single_mod, label="1 fente centrée + modulation")
+plt.plot(x*1e6, I_single_double_mod, label="2 contributions centrées + modulation")
 
 plt.xlabel("x (µm)")
 plt.ylabel("Intensité normalisée")
-plt.title("Interférence sans décalage géométrique (phase seule)")
+plt.title("Comparaison : diffraction, interférences et modulations locales")
 plt.grid(True)
-plt.legend(fontsize=9)
+plt.legend(fontsize=8)
 plt.tight_layout()
 
 plt.savefig("result.png", dpi=200)
